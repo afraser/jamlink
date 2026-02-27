@@ -28,6 +28,7 @@ export default function PeerView({ onBack, initialRoomCode = null }) {
   const [remoteStream, setRemoteStream] = useState(null);
   const [volume, setVolume] = useState(80);
   const [error, setError] = useState(null);
+  const [audioSuspended, setAudioSuspended] = useState(false);
 
   const pcRef = useRef(null);
   const gainNodeRef = useRef(null);
@@ -176,6 +177,13 @@ export default function PeerView({ onBack, initialRoomCode = null }) {
     audioCtxRef.current = ctx;
     gainNodeRef.current = gainNode;
 
+    // Browsers require a user gesture before AudioContext can produce sound.
+    // If the peer arrived via a shared URL (no gesture on this page), the
+    // context starts suspended. We attempt resume() here; if it stays
+    // suspended the UI will show a "click to enable audio" button.
+    ctx.resume().then(() => setAudioSuspended(false));
+    if (ctx.state !== 'running') setAudioSuspended(true);
+
     // Also attach to an <audio> element as a fallback / for mobile autoplay
     let el = audioElRef.current;
     if (!el) {
@@ -184,9 +192,7 @@ export default function PeerView({ onBack, initialRoomCode = null }) {
     }
     el.srcObject = stream;
     el.volume = volume / 100;
-    // We DON'T call el.play() here because the Web Audio API is already
-    // routing to the speakers. If you prefer the <audio> element approach,
-    // connect nothing to ctx.destination and call el.play() instead.
+    el.play().catch(() => {}); // best-effort; may be blocked by autoplay policy
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -283,7 +289,19 @@ export default function PeerView({ onBack, initialRoomCode = null }) {
       {isConnected && remoteStream && (
         <div className="card">
           <div className="card-title">Audio Playback</div>
-          <AudioVisualizer stream={remoteStream} color="#34d399" />
+          {audioSuspended ? (
+            <button
+              className="btn btn-primary btn-full"
+              onClick={() => audioCtxRef.current?.resume().then(() => {
+                setAudioSuspended(false);
+                audioElRef.current?.play().catch(() => {});
+              })}
+            >
+              🔊 Click to enable audio
+            </button>
+          ) : (
+            <AudioVisualizer stream={remoteStream} color="#34d399" />
+          )}
 
           <div className="volume-row">
             <span className="volume-label">Volume</span>
