@@ -11,11 +11,17 @@
  * over WebRTC once the handshake is complete.
  */
 
+const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const { v4: uuidv4 } = require('uuid');
 
 const PORT = process.env.PORT || 8080;
-const wss = new WebSocketServer({ port: PORT });
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('ok');
+});
+const wss = new WebSocketServer({ server });
+server.listen(PORT);
 
 /**
  * rooms: Map<roomId, { hostWs: WebSocket, hostId: string, peers: Map<peerId, WebSocket> }>
@@ -193,4 +199,4 @@ function handleDisconnect(ws) {
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 
-console.log(`Signaling server listening on ws://localhost:${PORT}`);
+console.log(`Signaling server listening on port ${PORT}`);
