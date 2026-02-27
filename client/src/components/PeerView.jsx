@@ -20,9 +20,10 @@ const ICE_SERVERS = [
 const SIGNALING_URL =
   import.meta.env.VITE_SIGNALING_URL || 'ws://localhost:8080';
 
-export default function PeerView({ onBack }) {
-  const [roomCodeInput, setRoomCodeInput] = useState('');
+export default function PeerView({ onBack, initialRoomCode = null }) {
+  const [roomCodeInput, setRoomCodeInput] = useState(initialRoomCode || '');
   const [joinedRoom, setJoinedRoom] = useState(null);
+  const autoJoinedRef = useRef(false);
   const [connectionState, setConnectionState] = useState('idle'); // idle | joining | connected | disconnected | error
   const [remoteStream, setRemoteStream] = useState(null);
   const [volume, setVolume] = useState(80);
@@ -41,6 +42,15 @@ export default function PeerView({ onBack }) {
       audioCtxRef.current?.close();
     };
   }, []);
+
+  // ── Auto-join when navigated to via URL ───────────────────────────────────
+
+  useEffect(() => {
+    if (initialRoomCode && connected && !autoJoinedRef.current) {
+      autoJoinedRef.current = true;
+      send({ type: 'join-room', roomId: initialRoomCode });
+    }
+  }, [initialRoomCode, connected, send]);
 
   // ── Volume control ─────────────────────────────────────────────────────────
 

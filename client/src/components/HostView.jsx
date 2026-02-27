@@ -219,7 +219,8 @@ export default function HostView({ onBack }) {
 
   const copyRoomCode = () => {
     if (roomId) {
-      navigator.clipboard.writeText(roomId).then(() => {
+      const url = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+      navigator.clipboard.writeText(url).then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       });
@@ -266,8 +267,8 @@ export default function HostView({ onBack }) {
         {roomId ? (
           <>
             <p className="hint" style={{ marginBottom: 8 }}>
-              Share this code with listeners — they'll enter it on the Listener
-              screen.
+              Share this link with listeners — it'll drop them straight into the
+              session.
             </p>
             <div className="room-code-display">
               <span className="room-code">{roomId}</span>
@@ -275,7 +276,7 @@ export default function HostView({ onBack }) {
                 className={`copy-btn ${copied ? "copied" : ""}`}
                 onClick={copyRoomCode}
               >
-                {copied ? "✓ Copied" : "Copy"}
+                {copied ? "✓ Copied" : "Copy link"}
               </button>
             </div>
           </>

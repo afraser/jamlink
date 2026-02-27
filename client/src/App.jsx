@@ -2,9 +2,14 @@ import { useState } from "react";
 import HostView from "./components/HostView.jsx";
 import PeerView from "./components/PeerView.jsx";
 
+function getInitialRoomCode() {
+  return new URLSearchParams(window.location.search).get("room")?.toUpperCase() || null;
+}
+
 export default function App() {
+  const initialRoomCode = getInitialRoomCode();
   // 'landing' | 'host' | 'peer'
-  const [mode, setMode] = useState("landing");
+  const [mode, setMode] = useState(initialRoomCode ? "peer" : "landing");
 
   return (
     <div className="app">
@@ -55,7 +60,7 @@ export default function App() {
         )}
 
         {mode === "host" && <HostView onBack={() => setMode("landing")} />}
-        {mode === "peer" && <PeerView onBack={() => setMode("landing")} />}
+        {mode === "peer" && <PeerView onBack={() => setMode("landing")} initialRoomCode={initialRoomCode} />}
       </main>
     </div>
   );
