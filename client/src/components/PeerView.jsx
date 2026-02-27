@@ -34,36 +34,7 @@ export default function PeerView({ onBack, initialRoomCode = null }) {
   const audioCtxRef = useRef(null);
   const audioElRef = useRef(null);
 
-  // ── Cleanup ────────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    return () => {
-      pcRef.current?.close();
-      audioCtxRef.current?.close();
-    };
-  }, []);
-
-  // ── Auto-join when navigated to via URL ───────────────────────────────────
-
-  useEffect(() => {
-    if (initialRoomCode && connected && !autoJoinedRef.current) {
-      autoJoinedRef.current = true;
-      send({ type: 'join-room', roomId: initialRoomCode });
-    }
-  }, [initialRoomCode, connected, send]);
-
-  // ── Volume control ─────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (gainNodeRef.current) {
-      gainNodeRef.current.gain.value = volume / 100;
-    }
-    if (audioElRef.current) {
-      audioElRef.current.volume = volume / 100;
-    }
-  }, [volume]);
-
-  // ── Signaling message handler ──────────────────────────────────────────────
+  // ── Signaling message handler (must be declared before useSignaling) ────────
 
   const handleSignalingMessage = useCallback(async (msg) => {
     switch (msg.type) {
@@ -111,6 +82,35 @@ export default function PeerView({ onBack, initialRoomCode = null }) {
   }, []);
 
   const { send, connected } = useSignaling(SIGNALING_URL, handleSignalingMessage);
+
+  // ── Cleanup ────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    return () => {
+      pcRef.current?.close();
+      audioCtxRef.current?.close();
+    };
+  }, []);
+
+  // ── Auto-join when navigated to via URL ───────────────────────────────────
+
+  useEffect(() => {
+    if (initialRoomCode && connected && !autoJoinedRef.current) {
+      autoJoinedRef.current = true;
+      send({ type: 'join-room', roomId: initialRoomCode });
+    }
+  }, [initialRoomCode, connected, send]);
+
+  // ── Volume control ─────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = volume / 100;
+    }
+    if (audioElRef.current) {
+      audioElRef.current.volume = volume / 100;
+    }
+  }, [volume]);
 
   // ── Join a room ────────────────────────────────────────────────────────────
 
