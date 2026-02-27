@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  base: '/jamlink/',
   server: {
     port: 3000,
     // Proxy WebSocket connections to the signaling server during dev
