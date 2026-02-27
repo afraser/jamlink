@@ -1,8 +1,10 @@
-# JamLink — P2P Audio Streaming PoC
+# 🎵 JamLink — P2P Audio Streaming PoC
 
 A browser-native, peer-to-peer audio streaming application built with **React**, **WebRTC**, and a lightweight **Node.js WebSocket signaling server**.
 
 The host captures audio from any browser tab (Spotify, Deezer, Quobuz, YouTube, SoundCloud etc.) and streams it directly to connected listeners with no audio data passing through the server.
+
+https://afraser.github.io/jamlink/
 
 ---
 
