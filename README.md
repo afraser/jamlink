@@ -84,6 +84,17 @@ Open **http://localhost:3000** in your browser.
 
 ---
 
+## Manual testing on a single machine
+
+1. Start the client and server as described in this readme.
+2. Play the audio you want to test in a new tab ("Source Tab") in the browser (eg: on SoundCloud).
+3. Mute that tab via right click on the tab and click "mute this tab".
+4. Open a 2nd tab ("Host Tab") to the JamLink client app and create a host to stream the Source Tab.
+5. Open a 3rd tab ("Client Tab") pointed to the JamLink room you just created and play it. You should hear the audio even though the source tab is muted.
+6. Congrats, you're now testing the listener experience. You can now compare the source audio to the client by unmuting the Source Tab and turning the volume down all the way on the Client Tab.
+
+---
+
 ## Project Structure
 
 ```
@@ -147,6 +158,44 @@ Free/cheap TURN options: [Metered](https://www.metered.ca/tools/openrelay/), [Tw
 - An **Electron** wrapper using `desktopCapturer` with loopback audio
 - A **Tauri** app with system-audio permission
 - A virtual audio device (e.g. BlackHole on macOS, VB-Cable on Windows) piped into a tab
+
+### Audio Quality
+
+What we can control:
+
+┌───────────────────────┬────────────────────────────┬───────────────┐
+│         Lever         │           Where            │ Current value │
+├───────────────────────┼────────────────────────────┼───────────────┤
+│ Mono vs stereo        │ SDP fmtp patch             │ stereo=0/1    │
+├───────────────────────┼────────────────────────────┼───────────────┤
+│ Echo cancellation     │ getDisplayMedia constraint │ false         │
+├───────────────────────┼────────────────────────────┼───────────────┤
+│ Noise suppression     │ getDisplayMedia constraint │ false         │
+├───────────────────────┼────────────────────────────┼───────────────┤
+│ Auto gain control     │ getDisplayMedia constraint │ false         │
+├───────────────────────┼────────────────────────────┼───────────────┤
+│ Sample rate (capture) │ getDisplayMedia constraint │ 48000 Hz      │
+└───────────────────────┴────────────────────────────┴───────────────┘
+
+What we don't control.
+
+The biggest missing lever is bitrate. WebRTC browsers default to roughly 32 kbps mono / 64 kbps stereo for Opus, which is voice-call quality. For music that's pretty bad.
+
+Other fmtp knobs worth knowing about:
+
+┌───────────────────┬────────────────────────────────────┬─────────────────────────┐
+│     Parameter     │            What it does            │  Good value for music   │
+├───────────────────┼────────────────────────────────────┼─────────────────────────┤
+│ maxaveragebitrate │ Opus target bitrate in bps         │ 320000 (320 kbps)       │
+├───────────────────┼────────────────────────────────────┼─────────────────────────┤
+│ maxplaybackrate   │ Decoder sample rate cap            │ 48000                   │
+├───────────────────┼────────────────────────────────────┼─────────────────────────┤
+│ usedtx            │ Discontinuous TX — mutes "silence" │ 0 (off — bad for music) │
+├───────────────────┼────────────────────────────────────┼─────────────────────────┤
+│ useinbandfec      │ In-band FEC for packet loss        │ 1                       │
+├───────────────────┼────────────────────────────────────┼─────────────────────────┤
+│ cbr               │ Constant vs variable bitrate       │ 0 (VBR, better quality) │
+└───────────────────┴────────────────────────────────────┴─────────────────────────┘
 
 ### Scaling
 
