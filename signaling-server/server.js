@@ -15,13 +15,11 @@ const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const { v4: uuidv4 } = require('uuid');
 
-const PORT = process.env.PORT || 8080;
 const server = http.createServer((req, res) => {
   res.writeHead(200);
   res.end('ok');
 });
 const wss = new WebSocketServer({ server });
-server.listen(PORT);
 
 /**
  * rooms: Map<roomId, { hostWs: WebSocket, hostId: string, peers: Map<peerId, WebSocket> }>
@@ -84,6 +82,16 @@ function handleMessage(ws, msg) {
 
     // Host creates a new room
     case 'create-room': {
+      // If this client already owns a room, tear it down first to avoid leaking it
+      if (meta.roomId && meta.isHost) {
+        const oldRoom = rooms.get(meta.roomId);
+        if (oldRoom) {
+          oldRoom.peers.forEach((peerWs) => send(peerWs, { type: 'host-left' }));
+          rooms.delete(meta.roomId);
+          console.log(`[ROOM] Destroyed previous room ${meta.roomId} (host re-created)`);
+        }
+      }
+
       let roomId = generateRoomId();
       // Avoid collision (extremely unlikely but safe)
       while (rooms.has(roomId)) roomId = generateRoomId();
@@ -104,6 +112,16 @@ function handleMessage(ws, msg) {
 
     // Peer joins an existing room
     case 'join-room': {
+      // If this peer is already in a room, leave it first to avoid leaking their entry
+      if (meta.roomId && !meta.isHost) {
+        const oldRoom = rooms.get(meta.roomId);
+        if (oldRoom) {
+          oldRoom.peers.delete(meta.clientId);
+          send(oldRoom.hostWs, { type: 'peer-left', peerId: meta.clientId });
+          console.log(`[ROOM] Peer ${meta.clientId} left previous room ${meta.roomId} (re-joined)`);
+        }
+      }
+
       const { roomId } = msg;
       const room = rooms.get(roomId);
 
@@ -199,4 +217,9 @@ function handleDisconnect(ws) {
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 
-console.log(`Signaling server listening on port ${PORT}`);
+if (require.main === module) {
+  const PORT = process.env.PORT || 8080;
+  server.listen(PORT, () => console.log(`Signaling server listening on port ${PORT}`));
+}
+
+module.exports = { server, rooms };
