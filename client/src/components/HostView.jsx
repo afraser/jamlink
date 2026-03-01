@@ -14,6 +14,26 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useSignaling } from "../hooks/useSignaling.js";
 import AudioVisualizer from "./AudioVisualizer.jsx";
 
+/**
+ * Patch the Opus fmtp line in an SDP string to enable or disable stereo.
+ *
+ * WebRTC Opus defaults to mono. Adding stereo=1;sprop-stereo=1 tells the
+ * codec to encode and send a 2-channel stream. Stereo roughly doubles the
+ * audio bitrate (Opus uses mid-side encoding so it's ~1.5–2× mono, not
+ * exactly 2×, depending on how much stereo separation the content has).
+ */
+function patchOpusStereo(sdp, stereo) {
+  const opusPt = sdp.match(/a=rtpmap:(\d+) opus\/48000/i)?.[1];
+  if (!opusPt) return sdp;
+  const flag = stereo ? 1 : 0;
+  return sdp.replace(new RegExp(`(a=fmtp:${opusPt} [^\r\n]*)`), (match) => {
+    const cleaned = match
+      .replace(/;?stereo=\d/, "")
+      .replace(/;?sprop-stereo=\d/, "");
+    return `${cleaned};stereo=${flag};sprop-stereo=${flag}`;
+  });
+}
+
 // Google's public STUN servers — good enough for most NAT configurations
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
@@ -30,10 +50,15 @@ export default function HostView({ onBack }) {
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [stereo, setStereo] = useState(true); // default stereo for music
 
   // We store peer connections in a ref so signaling callbacks see fresh state
   const peerConnsRef = useRef({});
   const streamRef = useRef(null);
+  const stereoRef = useRef(stereo);
+  useEffect(() => {
+    stereoRef.current = stereo;
+  }, [stereo]);
 
   // ── Signaling message handler ──────────────────────────────────────────────
 
@@ -121,6 +146,9 @@ export default function HostView({ onBack }) {
         },
       });
 
+      const track = mediaStream.getAudioTracks()[0];
+      console.log("[capture]", track.getSettings());
+
       // Handle the user dismissing the picker without choosing
       mediaStream.getAudioTracks()[0]?.addEventListener("ended", stopCapture);
 
@@ -184,6 +212,18 @@ export default function HostView({ onBack }) {
           [peerId]: { ...prev[peerId], state: pc.connectionState },
         }));
 
+        if (pc.connectionState === "connected") {
+          // Push the Opus encoder to 320 kbps so the mid-side Side channel
+          // gets enough bits to preserve stereo width.
+          const sender = pc.getSenders().find((s) => s.track?.kind === "audio");
+          if (sender) {
+            const params = sender.getParameters();
+            if (!params.encodings.length) params.encodings = [{}];
+            params.encodings[0].maxBitrate = 320_000;
+            sender.setParameters(params).catch(console.error);
+          }
+        }
+
         if (
           pc.connectionState === "failed" ||
           pc.connectionState === "closed"
@@ -196,9 +236,10 @@ export default function HostView({ onBack }) {
       peerConnsRef.current[peerId] = { pc };
       setPeers((prev) => ({ ...prev, [peerId]: { state: "connecting" } }));
 
-      // Create and send the offer
+      // Create and send the offer, patching Opus for stereo if enabled
       const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+      const patchedSdp = patchOpusStereo(offer.sdp, stereoRef.current);
+      await pc.setLocalDescription({ type: offer.type, sdp: patchedSdp });
       send({ type: "offer", sdp: pc.localDescription, targetPeerId: peerId });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     },
@@ -289,6 +330,30 @@ export default function HostView({ onBack }) {
       <div className="card">
         <div className="card-title">Audio Source</div>
 
+        {/* Mono / Stereo toggle — locked once capturing starts */}
+        <div className="quality-toggle">
+          <span className="quality-toggle-label">Channel</span>
+          <div className="quality-toggle-btns">
+            <button
+              className={`btn ${!stereo ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setStereo(false)}
+              disabled={isCapturing}
+            >
+              Mono
+            </button>
+            <button
+              className={`btn ${stereo ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setStereo(true)}
+              disabled={isCapturing}
+            >
+              Stereo
+            </button>
+          </div>
+          <span className="hint">
+            {stereo ? "~2× bandwidth, better for music" : "lower bandwidth"}
+          </span>
+        </div>
+
         {!isCapturing ? (
           <>
             <button
@@ -312,13 +377,13 @@ export default function HostView({ onBack }) {
                 style={{ flex: 1, justifyContent: "center", padding: "8px 0" }}
               >
                 <span className="status-dot" />
-                Streaming audio live
+                Streaming audio live · {stereo ? "stereo" : "mono"}
               </span>
               <button className="btn btn-danger" onClick={stopCapture}>
                 ⏹ Stop
               </button>
             </div>
-            <AudioVisualizer stream={stream} />
+            <AudioVisualizer stream={stream} stereo={stereo} />
           </>
         )}
 
