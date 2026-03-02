@@ -163,6 +163,7 @@ Free/cheap TURN options: [Metered](https://www.metered.ca/tools/openrelay/), [Tw
 
 What we can control:
 
+```
 ┌───────────────────────┬────────────────────────────┬───────────────┐
 │         Lever         │           Where            │ Current value │
 ├───────────────────────┼────────────────────────────┼───────────────┤
@@ -176,13 +177,14 @@ What we can control:
 ├───────────────────────┼────────────────────────────┼───────────────┤
 │ Sample rate (capture) │ getDisplayMedia constraint │ 48000 Hz      │
 └───────────────────────┴────────────────────────────┴───────────────┘
+```
 
 What we don't control.
 
 The biggest missing lever is bitrate. WebRTC browsers default to roughly 32 kbps mono / 64 kbps stereo for Opus, which is voice-call quality. For music that's pretty bad.
 
 Other fmtp knobs worth knowing about:
-
+```
 ┌───────────────────┬────────────────────────────────────┬─────────────────────────┐
 │     Parameter     │            What it does            │  Good value for music   │
 ├───────────────────┼────────────────────────────────────┼─────────────────────────┤
@@ -196,6 +198,7 @@ Other fmtp knobs worth knowing about:
 ├───────────────────┼────────────────────────────────────┼─────────────────────────┤
 │ cbr               │ Constant vs variable bitrate       │ 0 (VBR, better quality) │
 └───────────────────┴────────────────────────────────────┴─────────────────────────┘
+```
 
 ### Scaling
 
