@@ -184,6 +184,7 @@ What we don't control.
 The biggest missing lever is bitrate. WebRTC browsers default to roughly 32 kbps mono / 64 kbps stereo for Opus, which is voice-call quality. For music that's pretty bad.
 
 Other fmtp knobs worth knowing about:
+
 ```
 ┌───────────────────┬────────────────────────────────────┬─────────────────────────┐
 │     Parameter     │            What it does            │  Good value for music   │
@@ -199,6 +200,21 @@ Other fmtp knobs worth knowing about:
 │ cbr               │ Constant vs variable bitrate       │ 0 (VBR, better quality) │
 └───────────────────┴────────────────────────────────────┴─────────────────────────┘
 ```
+
+### NAT traversal
+
+> **In plain terms:** JamLink works best when both the host and listener are on typical home broadband. If a listener is on mobile data, a work/school network, or a VPN, their connection attempt may time out and fail. There's no workaround on the listener's end — the host needs a TURN server configured for those connections to succeed.
+
+This app uses **STUN only** for ICE negotiation. STUN lets each peer discover its public IP/port, but the audio still flows directly P2P — which fails when the network won't allow it.
+
+**Affected network types:**
+
+- **Symmetric NAT** — common on corporate networks, university WiFi, and some home routers
+- **CGNAT (Carrier-grade NAT)** — the norm on 4G/5G mobile connections
+
+**Symptom:** the listener sees "Connection failed" after roughly 20 seconds (the browser's ICE timeout).
+
+**Fix:** add a TURN server to `ICE_SERVERS` in both `HostView.jsx` and `PeerView.jsx`. A TURN server relays the audio through an intermediate host when a direct path can't be established. See the [TURN server configuration](#turn-server-for-peers-behind-strict-natfirewalls) section above for setup instructions and free/cheap provider options.
 
 ### Scaling
 
