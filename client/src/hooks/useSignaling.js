@@ -20,7 +20,6 @@ export function useSignaling(url, onMessage) {
   const onMessageRef = useRef(onMessage);
   const retryCountRef = useRef(0);
   const retryTimerRef = useRef(null);
-  const unmountedRef = useRef(false);
 
   // Keep callback ref up-to-date without re-connecting
   useEffect(() => {
@@ -29,21 +28,24 @@ export function useSignaling(url, onMessage) {
 
   useEffect(() => {
     if (!url) return;
-    unmountedRef.current = false;
+
+    let cancelled = false;
 
     function connect() {
-      if (unmountedRef.current) return;
+      if (cancelled) return;
 
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
       ws.onopen = () => {
+        if (cancelled) return;
         console.log('[Signaling] Connected to', url);
         retryCountRef.current = 0;
         setConnected(true);
       };
 
       ws.onmessage = (event) => {
+        if (cancelled) return;
         try {
           const msg = JSON.parse(event.data);
           console.log('[Signaling] ←', msg.type, msg);
@@ -54,10 +56,9 @@ export function useSignaling(url, onMessage) {
       };
 
       ws.onclose = () => {
+        if (cancelled) return;
         console.log('[Signaling] Disconnected');
         setConnected(false);
-
-        if (unmountedRef.current) return;
 
         const delay = Math.min(BASE_DELAY_MS * 2 ** retryCountRef.current, MAX_DELAY_MS);
         retryCountRef.current += 1;
@@ -66,6 +67,7 @@ export function useSignaling(url, onMessage) {
       };
 
       ws.onerror = (err) => {
+        if (cancelled) return;
         console.error('[Signaling] Error', err);
       };
     }
@@ -73,7 +75,7 @@ export function useSignaling(url, onMessage) {
     connect();
 
     return () => {
-      unmountedRef.current = true;
+      cancelled = true;
       clearTimeout(retryTimerRef.current);
       wsRef.current?.close();
     };
