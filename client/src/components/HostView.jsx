@@ -87,6 +87,21 @@ export default function HostView({ onBack }) {
     handleSignalingMessage
   );
 
+  // ── Clear room state when the signaling connection drops ──────────────────
+
+  const prevConnectedRef = useRef(false);
+  useEffect(() => {
+    const wasConnected = prevConnectedRef.current;
+    prevConnectedRef.current = connected;
+
+    if (wasConnected && !connected) {
+      // Connection dropped — clear stale room so we request a new one on reconnect
+      setRoomId(null);
+      Object.keys(peerConnsRef.current).forEach(closePeerConnection);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected]);
+
   // ── Create the room once we're connected ──────────────────────────────────
 
   useEffect(() => {
