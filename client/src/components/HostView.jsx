@@ -11,7 +11,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useSignaling } from "../hooks/useSignaling.js";
 import AudioVisualizer from "./AudioVisualizer.jsx";
 
@@ -25,7 +25,6 @@ const SIGNALING_URL =
   import.meta.env.VITE_SIGNALING_URL || "ws://localhost:8080";
 
 export default function HostView() {
-  const navigate = useNavigate();
   const [roomId, setRoomId] = useState(null);
   const [stream, setStream] = useState(null);
   const [peers, setPeers] = useState({}); // peerId -> { pc, state }
@@ -101,7 +100,7 @@ export default function HostView() {
       setRoomId(null);
       Object.keys(peerConnsRef.current).forEach(closePeerConnection);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected]);
 
   // ── Create the room once we're connected ──────────────────────────────────
@@ -266,9 +265,9 @@ export default function HostView() {
 
   return (
     <div className="view-container">
-      <button className="back-btn" onClick={() => navigate("/")}>
+      <Link className="back-btn" to="/">
         ← Back
-      </button>
+      </Link>
 
       {/* Status bar */}
       <div className="card">
