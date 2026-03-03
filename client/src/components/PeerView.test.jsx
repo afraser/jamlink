@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { act } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { useSignaling } from '../hooks/useSignaling.js';
 import PeerView from './PeerView.jsx';
 
@@ -14,14 +14,39 @@ vi.mock('../hooks/useSignaling.js', () => ({
 let mockSend;
 let capturedOnMessage;
 
+const SHARED_ROUTES = (
+  <>
+    <Route path="/"               element={<div data-testid="landing" />} />
+    <Route path="/join-room"      element={<PeerView />} />
+    <Route path="/listen/:roomId" element={<PeerView />} />
+  </>
+);
+
 function renderPeerView(path = '/join-room') {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route path="/"               element={<div data-testid="landing" />} />
-        <Route path="/join-room"      element={<PeerView />} />
-        <Route path="/listen/:roomId" element={<PeerView />} />
-      </Routes>
+      <Routes>{SHARED_ROUTES}</Routes>
+    </MemoryRouter>
+  );
+}
+
+function renderPeerViewWithNav(initialPath, navTargets = []) {
+  function NavButtons() {
+    const navigate = useNavigate();
+    return (
+      <div>
+        {navTargets.map(to => (
+          <button key={to} data-testid={`nav-to:${to}`} onClick={() => navigate(to)}>
+            {to}
+          </button>
+        ))}
+      </div>
+    );
+  }
+  return render(
+    <MemoryRouter initialEntries={[initialPath]}>
+      <Routes>{SHARED_ROUTES}</Routes>
+      <NavButtons />
     </MemoryRouter>
   );
 }
@@ -205,5 +230,35 @@ describe('PeerView — WebRTC', () => {
 
     // Status badge should now show "Connected · Live"
     expect(screen.getByText('Connected · Live')).toBeInTheDocument();
+  });
+});
+
+// ── Navigation / roomId change tests ─────────────────────────────────────────
+
+describe('PeerView — roomId navigation', () => {
+  test('navigating to a new roomId resets input and auto-joins the new room', async () => {
+    const user = userEvent.setup();
+    renderPeerViewWithNav('/listen/ROOM01', ['/listen/ROOM02']);
+
+    // Initial auto-join for ROOM01
+    expect(mockSend).toHaveBeenCalledWith({ type: 'join-room', roomId: 'ROOM01' });
+
+    // Simulate navigating to a different room
+    await user.click(screen.getByTestId('nav-to:/listen/ROOM02'));
+
+    // Input should now show the new room code
+    expect(screen.getByDisplayValue('ROOM02')).toBeInTheDocument();
+
+    // Auto-join should fire for the new room
+    expect(mockSend).toHaveBeenCalledWith({ type: 'join-room', roomId: 'ROOM02' });
+  });
+
+  test('navigating from /listen/:roomId to /join-room clears input', async () => {
+    const user = userEvent.setup();
+    renderPeerViewWithNav('/listen/ROOM01', ['/join-room']);
+
+    await user.click(screen.getByTestId('nav-to:/join-room'));
+
+    expect(screen.getByPlaceholderText('XXXXXX')).toHaveValue('');
   });
 });

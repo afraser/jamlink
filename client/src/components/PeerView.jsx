@@ -22,9 +22,9 @@ const SIGNALING_URL =
   import.meta.env.VITE_SIGNALING_URL || 'ws://localhost:8080';
 
 export default function PeerView() {
-  const { roomId: initialRoomCode = null } = useParams();
+  const { roomId = null } = useParams();
   const navigate = useNavigate();
-  const [roomCodeInput, setRoomCodeInput] = useState(initialRoomCode || '');
+  const [roomCodeInput, setRoomCodeInput] = useState(roomId || '');
   const [joinedRoom, setJoinedRoom] = useState(null);
   const autoJoinedRef = useRef(false);
   const [connectionState, setConnectionState] = useState('idle'); // idle | joining | connected | disconnected | error
@@ -96,14 +96,26 @@ export default function PeerView() {
     };
   }, []);
 
+  // ── Sync state when roomId param changes (e.g. navigating between rooms) ──
+
+  useEffect(() => {
+    setRoomCodeInput(roomId || '');
+    setJoinedRoom(null);
+    setConnectionState('idle');
+    setError(null);
+    autoJoinedRef.current = false;
+    pcRef.current?.close();
+    pcRef.current = null;
+  }, [roomId]);
+
   // ── Auto-join when navigated to via URL ───────────────────────────────────
 
   useEffect(() => {
-    if (initialRoomCode && connected && !autoJoinedRef.current) {
+    if (roomId && connected && !autoJoinedRef.current) {
       autoJoinedRef.current = true;
-      send({ type: 'join-room', roomId: initialRoomCode });
+      send({ type: 'join-room', roomId });
     }
-  }, [initialRoomCode, connected, send]);
+  }, [roomId, connected, send]);
 
   // ── Volume control ─────────────────────────────────────────────────────────
 
