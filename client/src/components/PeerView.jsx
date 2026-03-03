@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useSignaling } from '../hooks/useSignaling.js';
 import AudioVisualizer from './AudioVisualizer.jsx';
 
@@ -20,7 +21,9 @@ const ICE_SERVERS = [
 const SIGNALING_URL =
   import.meta.env.VITE_SIGNALING_URL || 'ws://localhost:8080';
 
-export default function PeerView({ onBack, initialRoomCode = null }) {
+export default function PeerView() {
+  const { roomId: initialRoomCode = null } = useParams();
+  const navigate = useNavigate();
   const [roomCodeInput, setRoomCodeInput] = useState(initialRoomCode || '');
   const [joinedRoom, setJoinedRoom] = useState(null);
   const autoJoinedRef = useRef(false);
@@ -218,7 +221,7 @@ export default function PeerView({ onBack, initialRoomCode = null }) {
 
   return (
     <div className="view-container">
-      <button className="back-btn" onClick={onBack}>
+      <button className="back-btn" onClick={() => navigate("/")}>
         ← Back
       </button>
 
