@@ -459,6 +459,45 @@ input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.3); }
   line-height: 1.5;
 }
 
+/* ── Quality toggle ─────────────────────────────────────────────────────────── */
+
+.quality-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.quality-toggle-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.quality-toggle-btns {
+  display: flex;
+}
+
+.quality-toggle-btns .btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 0;
+}
+
+.quality-toggle-btns .btn:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.quality-toggle-btns .btn:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.quality-toggle .hint {
+  margin-top: 0;
+}
+
 /* ── Back link ───────────────────────────────────────────────────────────────── */
 
 .back-btn {

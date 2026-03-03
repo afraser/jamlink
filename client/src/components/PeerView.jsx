@@ -29,6 +29,7 @@ export default function PeerView({ onBack, initialRoomCode = null }) {
   const [volume, setVolume] = useState(80);
   const [error, setError] = useState(null);
   const [audioSuspended, setAudioSuspended] = useState(false);
+  const [remoteStreamStereo, setRemoteStreamStereo] = useState(false);
 
   const pcRef = useRef(null);
   const gainNodeRef = useRef(null);
@@ -129,6 +130,10 @@ export default function PeerView({ onBack, initialRoomCode = null }) {
   // ── Handle WebRTC offer ────────────────────────────────────────────────────
 
   const handleOffer = useCallback(async (sdp) => {
+    // Detect whether the host patched the SDP for stereo Opus
+    const isStereo = /stereo=1/.test(sdp.sdp ?? sdp);
+    setRemoteStreamStereo(isStereo);
+
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     pcRef.current = pc;
 
@@ -300,7 +305,7 @@ export default function PeerView({ onBack, initialRoomCode = null }) {
               🔊 Click to enable audio
             </button>
           ) : (
-            <AudioVisualizer stream={remoteStream} color="#34d399" />
+            <AudioVisualizer stream={remoteStream} color="#34d399" stereo={remoteStreamStereo} />
           )}
 
           <div className="volume-row">
