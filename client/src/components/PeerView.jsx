@@ -9,7 +9,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useSignaling } from "../hooks/useSignaling.js";
 import AudioVisualizer from "./AudioVisualizer.jsx";
 
