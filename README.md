@@ -95,6 +95,41 @@ Open **http://localhost:3000** in your browser.
 
 ---
 
+## Testing
+
+Both test suites require **Node 24** (pinned via `.nvmrc` in each directory — run `nvm use` if you use nvm).
+
+### Signaling server — integration tests
+
+```bash
+cd signaling-server
+npm test
+```
+
+22 integration tests covering room creation, peer join/leave, host-left notifications, and edge cases. Uses Node's built-in `node:test` runner.
+
+### Client — unit / component tests
+
+```bash
+cd client
+pnpm test          # run once
+pnpm test:watch    # watch mode
+```
+
+44 tests across 5 files:
+
+| File | What it covers |
+|------|----------------|
+| `src/App.test.jsx` | Route rendering and navigation |
+| `src/hooks/useSignaling.test.js` | WebSocket lifecycle, reconnect backoff |
+| `src/components/HostView.test.jsx` | Signaling UI states, audio capture errors, WebRTC offer/ICE/answer flow |
+| `src/components/PeerView.test.jsx` | Room join UI, auto-join from URL, WebRTC answer/ICE flow |
+| `src/components/AudioVisualizer.test.jsx` | AudioContext setup and teardown |
+
+Stack: [Vitest](https://vitest.dev/) + [@testing-library/react](https://testing-library.com/docs/react-testing-library/intro/).
+
+---
+
 ## Project Structure
 
 ```
