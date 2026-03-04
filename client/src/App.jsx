@@ -1,6 +1,7 @@
 import { Routes, Route, Link } from "react-router-dom";
 import HostView from "./components/HostView.jsx";
-import PeerView from "./components/PeerView.jsx";
+import JoinView from "./components/JoinView.jsx";
+import ListenView from "./components/ListenView.jsx";
 
 function Landing() {
   return (
@@ -51,8 +52,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/host" element={<HostView />} />
-          <Route path="/join-room" element={<PeerView />} />
-          <Route path="/listen/:roomId" element={<PeerView />} />
+          <Route path="/join-room" element={<JoinView />} />
+          <Route path="/listen/:roomId" element={<ListenView />} />
         </Routes>
       </main>
     </div>

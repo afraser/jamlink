@@ -1,9 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { useSignaling } from "../hooks/useSignaling.js";
-import PeerView from "./PeerView.jsx";
+import ListenView from "./ListenView.jsx";
 
 vi.mock("../hooks/useSignaling.js", () => ({
   useSignaling: vi.fn(),
@@ -14,13 +14,12 @@ vi.mock("../hooks/useSignaling.js", () => ({
 let mockSend;
 let capturedOnMessage;
 
-function renderPeerView(path = "/join-room") {
+function renderListenView(roomId = "ABCDEF") {
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter initialEntries={[`/listen/${roomId}`]}>
       <Routes>
         <Route path="/" element={<div data-testid="landing" />} />
-        <Route path="/join-room" element={<PeerView />} />
-        <Route path="/listen/:roomId" element={<PeerView />} />
+        <Route path="/listen/:roomId" element={<ListenView />} />
       </Routes>
     </MemoryRouter>
   );
@@ -52,14 +51,12 @@ function makeFakePC() {
     onicecandidate: null,
     onconnectionstatechange: null,
     ontrack: null,
-    createOffer: vi.fn(async () => FAKE_OFFER_SDP),
+    createAnswer: vi.fn(async () => FAKE_ANSWER_SDP),
     setLocalDescription: vi.fn(async (desc) => {
       pc.localDescription = desc;
     }),
     setRemoteDescription: vi.fn(async () => {}),
-    createAnswer: vi.fn(async () => FAKE_ANSWER_SDP),
     addIceCandidate: vi.fn(async () => {}),
-    addTrack: vi.fn(),
     close: vi.fn(),
     _fireIce: (candidate) => pc.onicecandidate?.({ candidate }),
     _fireStateChange: (state) => {
@@ -85,46 +82,22 @@ function setupFakeRTC() {
 
 // ── Signaling / UI tests ──────────────────────────────────────────────────────
 
-describe("PeerView — signaling and UI", () => {
-  test("on /join-room: room code input renders empty", () => {
-    renderPeerView("/join-room");
-    expect(screen.getByPlaceholderText("XXXXXX")).toHaveValue("");
-  });
-
-  test("on /listen/ABCXYZ: input is pre-filled with ABCXYZ", () => {
-    renderPeerView("/listen/ABCXYZ");
-    expect(screen.getByDisplayValue("ABCXYZ")).toBeInTheDocument();
-  });
-
-  test("on /listen/ABCXYZ: auto-sends join-room once connected=true", () => {
-    renderPeerView("/listen/ABCXYZ");
+describe("ListenView — signaling and UI", () => {
+  test("auto-sends join-room with roomId from URL once connected", () => {
+    renderListenView("ABCXYZ");
     expect(mockSend).toHaveBeenCalledWith({
       type: "join-room",
       roomId: "ABCXYZ",
     });
   });
 
-  test("Join button is disabled when input has fewer than 4 chars", async () => {
-    const user = userEvent.setup();
-    renderPeerView("/join-room");
-    const input = screen.getByPlaceholderText("XXXXXX");
-    await user.type(input, "AB");
-    expect(screen.getByRole("button", { name: "Join" })).toBeDisabled();
-  });
-
-  test("typing a code and clicking Join sends join-room message", async () => {
-    const user = userEvent.setup();
-    renderPeerView("/join-room");
-    await user.type(screen.getByPlaceholderText("XXXXXX"), "ABCDEF");
-    await user.click(screen.getByRole("button", { name: "Join" }));
-    expect(mockSend).toHaveBeenCalledWith({
-      type: "join-room",
-      roomId: "ABCDEF",
-    });
+  test("displays the room code from the URL", () => {
+    renderListenView("ABCXYZ");
+    expect(screen.getByText("ABCXYZ")).toBeInTheDocument();
   });
 
   test('shows "Joining room…" after room-joined message', async () => {
-    renderPeerView("/join-room");
+    renderListenView();
     await act(async () => {
       await capturedOnMessage({ type: "room-joined", roomId: "ABCDEF" });
     });
@@ -132,7 +105,7 @@ describe("PeerView — signaling and UI", () => {
   });
 
   test("shows error alert after error message", async () => {
-    renderPeerView("/join-room");
+    renderListenView();
     await act(async () => {
       await capturedOnMessage({ type: "error", message: "Room not found." });
     });
@@ -140,7 +113,7 @@ describe("PeerView — signaling and UI", () => {
   });
 
   test('shows "The host ended the session." after host-left message', async () => {
-    renderPeerView("/join-room");
+    renderListenView();
     await act(async () => {
       await capturedOnMessage({ type: "room-joined", roomId: "ABCDEF" });
     });
@@ -150,9 +123,9 @@ describe("PeerView — signaling and UI", () => {
     expect(screen.getByText("The host ended the session.")).toBeInTheDocument();
   });
 
-  test("back button navigates to /", async () => {
+  test("back link navigates to /", async () => {
     const user = userEvent.setup();
-    renderPeerView("/join-room");
+    renderListenView();
     await user.click(screen.getByRole("link", { name: /← Back/i }));
     expect(screen.getByTestId("landing")).toBeInTheDocument();
   });
@@ -160,7 +133,7 @@ describe("PeerView — signaling and UI", () => {
 
 // ── WebRTC tests ──────────────────────────────────────────────────────────────
 
-describe("PeerView — WebRTC", () => {
+describe("ListenView — WebRTC", () => {
   beforeEach(() => {
     setupFakeRTC();
   });
@@ -170,7 +143,7 @@ describe("PeerView — WebRTC", () => {
   });
 
   test("after receiving an offer, component sends an answer with valid SDP", async () => {
-    renderPeerView("/join-room");
+    renderListenView();
     await act(async () => {
       await capturedOnMessage({ type: "room-joined", roomId: "ABCDEF" });
     });
@@ -187,7 +160,7 @@ describe("PeerView — WebRTC", () => {
   });
 
   test("component sends ICE candidates back to host via signaling", async () => {
-    renderPeerView("/join-room");
+    renderListenView();
     await act(async () => {
       await capturedOnMessage({ type: "room-joined", roomId: "ABCDEF" });
     });
@@ -208,8 +181,8 @@ describe("PeerView — WebRTC", () => {
     });
   });
 
-  test("ontrack fires → connectionState becomes connected in UI", async () => {
-    renderPeerView("/join-room");
+  test("connectionState becomes connected in UI after state change", async () => {
+    renderListenView();
     await act(async () => {
       await capturedOnMessage({ type: "room-joined", roomId: "ABCDEF" });
     });
@@ -217,12 +190,10 @@ describe("PeerView — WebRTC", () => {
       await capturedOnMessage({ type: "offer", sdp: FAKE_OFFER_SDP });
     });
 
-    // Simulate the RTCPeerConnection reaching 'connected' state
     await act(async () => {
       fakePC._fireStateChange("connected");
     });
 
-    // Status badge should now show "Connected · Live"
     expect(screen.getByText("Connected · Live")).toBeInTheDocument();
   });
 });

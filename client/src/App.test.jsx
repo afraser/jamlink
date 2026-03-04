@@ -30,11 +30,11 @@ describe('App routing', () => {
     expect(screen.getByText('Host Session')).toBeInTheDocument();
   });
 
-  test('clicking "Listen In" navigates to PeerView', async () => {
+  test('clicking "Listen In" navigates to JoinView', async () => {
     const user = userEvent.setup();
     renderAt('/');
     await user.click(screen.getByText('Listen In'));
-    // PeerView shows this title in its card
+    // JoinView shows this title in its card
     expect(screen.getByText('Listener')).toBeInTheDocument();
   });
 
@@ -45,9 +45,9 @@ describe('App routing', () => {
     expect(screen.getByText('Stream Audio, Peer-to-Peer')).toBeInTheDocument();
   });
 
-  test('navigating to /listen/ABCXYZ renders PeerView with room code pre-filled', () => {
+  test('navigating to /listen/ABCXYZ renders ListenView with room code visible', () => {
     renderAt('/listen/ABCXYZ');
     expect(screen.getByText('Listener')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('ABCXYZ')).toBeInTheDocument();
+    expect(screen.getByText('ABCXYZ')).toBeInTheDocument();
   });
 });
